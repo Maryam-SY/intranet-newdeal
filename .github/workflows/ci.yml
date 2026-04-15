@@ -1,22 +1,62 @@
-name: CI
+name: CI Pipeline - Dev
 
 on:
   push:
-    branches: [main, dev]
-  pull_request:
+    branches: [dev]
 
 jobs:
   build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Build Docker image
-        run: |
-          docker build . --tag intranet-newdeal:ci
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev .
 
-      - name: Verify Nginx configuration
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Trivy
         run: |
-          docker run --rm intranet-newdeal:ci nginx -t
+          sudo apt-get install -y wget apt-transport-https gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update && sudo apt-get install -y trivy
+
+      - name: Scan image
+        run: trivy image --severity CRITICAL --exit-code 1 nginx:alpine3.23-slim
+
+      - name: Scan secrets in code
+        run: trivy fs --scanners secret .
+
+  push:
+    name: Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: security-scan
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build and Push
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
+
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "✅ Pipeline CI réussi - Intranet NewDeal"
+          body: "Le pipeline CI a été exécuté avec succès sur la branche dev."
+          to: moussawade@groupeisi.com
+          from: ${{ secrets.EMAIL_USERNAME }}
