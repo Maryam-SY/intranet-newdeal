@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev .
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:latest .
 
   security-scan:
     name: Security Scan
@@ -46,8 +46,8 @@ jobs:
 
       - name: Build and Push
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:latest
 
       - name: Send email notification
         uses: dawidd6/action-send-mail@v3
