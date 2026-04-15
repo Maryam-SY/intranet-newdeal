@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intranet-newdeal
+  labels:
+    app: intranet
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: intranet
+  template:
+    metadata:
+      labels:
+        app: intranet
+    spec:
+      containers:
+        - name: intranet-newdeal
+          image: maesy/intranet-newdeal:latest
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
