@@ -1,0 +1,38 @@
+name: CD Pipeline - Prod
+
+on:
+  push:
+    branches: [prod]
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: [self-hosted, runner_prod]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update && sudo apt-get install -y trivy
+
+      - name: Scan image
+        run: trivy image ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
+
+  deploy:
+    name: Deploy to Production
+    runs-on: [self-hosted, runner_prod]
+    needs: security-scan
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Stop existing container
+        run: docker stop intranet || true && docker rm intranet || true
+
+      - name: Pull latest image
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
+
+      - name: Run container on port 80
+        run: docker run -d --name intranet -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
