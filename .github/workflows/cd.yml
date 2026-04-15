@@ -35,11 +35,11 @@ jobs:
 
       - name: Pull latest image
         shell: powershell
-        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:latest
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
 
       - name: Run container on port 80
         shell: powershell
         run: |
-          docker run -d --name intranet -p 80:80 \
-          ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:latest
+          docker run -d --name intranet -p 80:80 `
+          ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
 
