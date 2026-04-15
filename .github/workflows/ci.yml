@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build . --tag intranet-newdeal:ci
+
+      - name: Verify Nginx configuration
+        run: |
+          docker run --rm intranet-newdeal:ci nginx -t
