@@ -1,0 +1,42 @@
+name: CD Pipeline - Prod
+
+on:
+  push:
+    branches: [prod]
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: nginx:alpine3.23
+          format: table
+          exit-code: 0
+
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: security-scan
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Stop old container
+        run: docker stop intranet-newdeal || true
+
+      - name: Remove old container
+        run: docker rm intranet-newdeal || true
+
+      - name: Pull image
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
+
+      - name: Run container
+        run: |
+          docker run -d --name intranet-newdeal -p 80:80 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
