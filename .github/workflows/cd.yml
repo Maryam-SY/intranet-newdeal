@@ -27,16 +27,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Stop old container
-        run: docker stop intranet-newdeal || true
-
-      - name: Remove old container
-        run: docker rm intranet-newdeal || true
+      - name: Stop and remove old container
+        shell: powershell
+        run: |
+          $container = docker ps -q --filter "name=intranet-newdeal"
+          if ($container) {
+            docker stop intranet-newdeal
+            docker rm intranet-newdeal
+          }
 
       - name: Pull image
+        shell: powershell
         run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
 
       - name: Run container
+        shell: powershell
         run: |
-          docker run -d --name intranet-newdeal -p 80:80 \
-          ${{ secrets.DOCKERHUB_USERNAME }}/intranet-newdeal:dev
+          docker run -d --name intranet-newdeal -p 80:80 `
